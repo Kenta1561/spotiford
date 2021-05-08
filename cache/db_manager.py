@@ -33,6 +33,13 @@ connection.row_factory = dict_factory
 cursor = connection.cursor()
 
 
+def has_user(discord_id):
+    result = cursor.execute(
+        "SELECT COUNT(*) FROM user WHERE discord_id = ?", (discord_id,)
+    ).fetchone()
+    return result["COUNT(*)"] != 0
+
+
 class DatabaseCacheHandler(CacheHandler):
 
     def __init__(self):

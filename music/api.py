@@ -22,10 +22,15 @@ _client = Spotify(auth_manager=SpotifyClientCredentials(
 _auth_client = Spotify(oauth_manager=_oauth)
 
 
+# region Authentication
+
 def authorize_user(discord_id, code):
     _cache_handler.current_user = discord_id
     _oauth.get_access_token(code, as_dict=True)
 
+# endregion
+
+# region API Endpoints
 
 def get_current_user(discord_id):
     _cache_handler.current_user = discord_id
@@ -44,3 +49,5 @@ def get_currently_playing(discord_id):
 def queue(discord_id, track):
     _cache_handler.current_user = discord_id
     return _auth_client.add_to_queue(track["uri"])
+
+# endregion

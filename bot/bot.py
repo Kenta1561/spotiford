@@ -1,13 +1,38 @@
 import asyncio
 from urllib.parse import urlparse, parse_qs
 
+from discord.ext import commands
 from discord.ext.commands.bot import Bot
 from spotipy.oauth2 import SpotifyOauthError
 
 from bot import embeds, utils
+from cache import db_manager
 from music import api
 
 bot = Bot(command_prefix="-")
+
+
+# region Checks
+
+@bot.check
+async def disallow_guilds(context):
+    if context.guild:
+        await context.send(
+            "For security reasons, spotiford should only be used via DM."
+        )
+        return False
+    return True
+
+
+def is_authenticated():
+    async def predicate(context):
+        if not db_manager.has_user(context.author.id):
+            await context.send("For that, you have to be logged in.")
+            return False
+        return True
+    return commands.check(predicate)
+
+# endregion
 
 
 @bot.command()
@@ -32,18 +57,21 @@ async def connect(context, url):
 
 
 @bot.command()
+@is_authenticated()
 async def account(context):
     current_user = api.get_current_user(context.author.id)
     await context.send(embed=embeds.create_user_embed(current_user))
 
 
 @bot.command()
+@is_authenticated()
 async def now(context):
     track = api.get_currently_playing(context.author.id)
     await context.send(embed=embeds.create_track_embed(track))
 
 
 @bot.command()
+@is_authenticated()
 async def queue(context, *query):
     query_concat = " ".join(query)
     tracks = api.get_tracks(query_concat)
