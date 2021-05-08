@@ -7,7 +7,7 @@ oauth = SpotifyOAuth(
     client_id=os.environ["SPOTIFY_CLIENT_ID"],
     client_secret=os.environ["SPOTIFY_CLIENT_SECRET"],
     redirect_uri="http://localhost:8080",
-    scope="user-read-email",
+    scope="user-read-email,streaming",
     open_browser=False
 )
 
@@ -29,4 +29,8 @@ def get_current_user(discord_id):
 
 
 def get_tracks(query):
-    return simple_client.search(query, limit=5)
+    return simple_client.search(query, type="track", limit=5)["tracks"]["items"]
+
+
+def queue(discord_id, track):
+    return _sessions[discord_id].add_to_queue(track["uri"])
