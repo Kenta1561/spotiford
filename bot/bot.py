@@ -12,7 +12,8 @@ bot = Bot(command_prefix="-")
 
 @bot.command()
 async def login(context):
-    await context.send(f"Authorize with your Spotify client here: {api.oauth.get_authorize_url()}")
+    await context.send(
+        f"Authorize with your Spotify client here: {api._oauth.get_authorize_url()}")
 
 
 @bot.command()
@@ -25,13 +26,21 @@ async def connect(context, url):
     except KeyError:
         await context.send("Sorry, you provided an invalid response url.")
     except SpotifyOauthError:
-        await context.send("Sorry, the authorization was unsuccessful. Please try again with `-login`.")
+        await context.send(
+            "Sorry, the authorization was unsuccessful. Please try again with `-login`."
+        )
 
 
 @bot.command()
 async def account(context):
     current_user = api.get_current_user(context.author.id)
     await context.send(embed=embeds.create_user_embed(current_user))
+
+
+@bot.command()
+async def now(context):
+    track = api.get_currently_playing(context.author.id)
+    await context.send(embed=embeds.create_track_embed(track))
 
 
 @bot.command()
@@ -50,7 +59,9 @@ async def queue(context, *query):
 
     # Wait for user reaction
     try:
-        reaction = await bot.wait_for("raw_reaction_add", check=queue_reaction_check, timeout=30.0)
+        reaction = await bot.wait_for(
+            "raw_reaction_add", check=queue_reaction_check, timeout=30.0
+        )
         selected_track = tracks[utils.number_emojis.index(reaction.emoji.name)]
         await message.delete()
         api.queue(context.author.id, selected_track)
