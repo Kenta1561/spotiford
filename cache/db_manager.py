@@ -57,7 +57,12 @@ class DatabaseCacheHandler(CacheHandler):
 
     def save_token_to_cache(self, token_info):
         cursor.execute(
-            "INSERT OR REPLACE INTO user VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (self.current_user, *token_info.values())
+            """
+                INSERT OR REPLACE INTO user VALUES (
+                    :discord_id, :access_token, :token_type, :expires_in,
+                    :refresh_token, :scope, :expires_at
+                )
+            """,
+            {"discord_id": self.current_user} | token_info
         )
         connection.commit()
