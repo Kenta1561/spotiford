@@ -1,7 +1,7 @@
-from spotipy.oauth2 import SpotifyOAuth
-from spotipy import Spotify
 import os
 
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 
 oauth = SpotifyOAuth(
     client_id=os.environ["SPOTIFY_CLIENT_ID"],
@@ -11,13 +11,22 @@ oauth = SpotifyOAuth(
     open_browser=False
 )
 
-sessions = {}
+simple_client = Spotify(auth_manager=SpotifyClientCredentials(
+    client_id=os.environ["SPOTIFY_CLIENT_ID"],
+    client_secret=os.environ["SPOTIFY_CLIENT_SECRET"]
+))
+
+_sessions = {}
 
 
 def authorize_user(discord_id, code):
     access_token = oauth.get_access_token(code=code, as_dict=False)
-    sessions[discord_id] = Spotify(auth=access_token)
+    _sessions[discord_id] = Spotify(auth=access_token)
 
 
 def get_current_user(discord_id):
-    return sessions[discord_id].current_user()
+    return _sessions[discord_id].current_user()
+
+
+def get_tracks(query):
+    return simple_client.search(query, limit=5)
