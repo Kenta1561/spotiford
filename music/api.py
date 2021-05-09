@@ -5,6 +5,8 @@ from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 
 from cache.db_manager import DatabaseCacheHandler
 
+# TODO Rework auth on unsuccessful auth, avoid stdout prompt
+
 _cache_handler = DatabaseCacheHandler()
 _auth_scopes = [
     "user-read-email",
@@ -28,9 +30,17 @@ _client = Spotify(auth_manager=SpotifyClientCredentials(
 ))
 _auth_client = Spotify(oauth_manager=_oauth)
 
+def set_user(discord_id):
+    """
+    Set the current user of the cache handler to the provided discord user.
 
-# TODO automatic switch of current_user
-# TODO Rework auth on unsuccessful auth, avoid stdout prompt
+    Must run before each authenticated endpoint request.
+
+    :param discord_id: Discord user id
+    """
+
+    _cache_handler.current_user = discord_id
+
 
 # region Authentication
 
@@ -52,7 +62,7 @@ def authorize_user(discord_id, code):
 
 # region Information
 
-def get_user(discord_id):
+def get_user():
     """
     Get the Spotify user for the given Discord user.
 
@@ -62,7 +72,6 @@ def get_user(discord_id):
     :return:
     """
 
-    _cache_handler.current_user = discord_id
     return _auth_client.current_user()
 
 
@@ -80,7 +89,7 @@ def get_tracks(query):
     return _client.search(query, type="track", limit=5)["tracks"]["items"]
 
 
-def get_currently_playing(discord_id):
+def get_currently_playing():
     """
     Get the currently playing track.
 
@@ -90,7 +99,6 @@ def get_currently_playing(discord_id):
     :return: Currently playing track
     """
 
-    _cache_handler.current_user = discord_id
     return _auth_client.current_user_playing_track()["item"]
 
 
@@ -98,7 +106,7 @@ def get_currently_playing(discord_id):
 
 # region Library
 
-def is_saved(discord_id, track):
+def is_saved(track):
     """
     Check whether the given track is saved in the user's library.
 
@@ -109,11 +117,10 @@ def is_saved(discord_id, track):
     :return: True, if track is saved
     """
 
-    _cache_handler.current_user = discord_id
     return _auth_client.current_user_saved_tracks_contains([track["uri"]])[0]
 
 
-def save_track(discord_id, track):
+def save_track(track):
     """
     Save a track to the user's library.
 
@@ -123,11 +130,10 @@ def save_track(discord_id, track):
     :param track: Track to save
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.current_user_saved_tracks_add([track["uri"]])
 
 
-def remove_track(discord_id, track):
+def remove_track(track):
     """
     Remove a track from the user's library.
 
@@ -137,7 +143,6 @@ def remove_track(discord_id, track):
     :param track: Track to remove
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.current_user_saved_tracks_delete([track["uri"]])
 
 
@@ -145,7 +150,7 @@ def remove_track(discord_id, track):
 
 # region Queue
 
-def queue(discord_id, track):
+def queue(track):
     """
     Queue a track.
 
@@ -155,7 +160,6 @@ def queue(discord_id, track):
     :param track: Track to queue
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.add_to_queue(track["uri"])
 
 
@@ -163,7 +167,7 @@ def queue(discord_id, track):
 
 # region Playback
 
-def play(discord_id):
+def play():
     """
     Start/resume the playback.
 
@@ -172,11 +176,10 @@ def play(discord_id):
     :param discord_id: Discord user id
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.start_playback()
 
 
-def pause(discord_id):
+def pause():
     """
     Pause the playback.
 
@@ -185,11 +188,10 @@ def pause(discord_id):
     :param discord_id: Discord user id
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.pause_playback()
 
 
-def next_track(discord_id):
+def next_track():
     """
     Skip to the next track.
 
@@ -198,11 +200,10 @@ def next_track(discord_id):
     :param discord_id: Discord user id
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.next_track()
 
 
-def previous_track(discord_id):
+def previous_track():
     """
     Skip to the previous track.
 
@@ -211,7 +212,6 @@ def previous_track(discord_id):
     :param discord_id: Discord user id
     """
 
-    _cache_handler.current_user = discord_id
     _auth_client.previous_track()
 
 

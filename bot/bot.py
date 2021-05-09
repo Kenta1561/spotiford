@@ -36,18 +36,23 @@ async def disallow_guilds(context):
     return True
 
 
-def is_authenticated():
+def authenticate():
     """
     Check if the user is already authenticated with Spotify.
+
+    If authenticated, set the current user to the user.
 
     :return: True, if authenticated
     """
 
     async def predicate(context):
-        if not db_manager.has_user(context.author.id):
+        discord_id = context.author.id
+        if not db_manager.has_user(discord_id):
             await context.send("For that, you have to be logged in.")
             return False
-        return True
+        else:
+            api.set_user(discord_id)
+            return True
 
     return commands.check(predicate)
 
@@ -98,7 +103,7 @@ async def connect(context, url):
     try:
         code = parse_qs(urlparse(url).query)["code"][0]
         api.authorize_user(context.author.id, code)
-        current_user = api.get_user(context.author.id)
+        current_user = api.get_user()
         await context.send(embed=embeds.create_user_embed(current_user))
     except KeyError:
         await context.send("Sorry, you provided an invalid response url.")
@@ -113,7 +118,7 @@ async def connect(context, url):
 # region Information
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def account(context):
     """
     Send the Spotify profile of the user.
@@ -121,12 +126,12 @@ async def account(context):
     :param context: Invocation context
     """
 
-    current_user = api.get_user(context.author.id)
+    current_user = api.get_user()
     await context.send(embed=embeds.create_user_embed(current_user))
 
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def now(context):
     """
     Display the currently playing track.
@@ -141,10 +146,10 @@ async def now(context):
     """
 
     discord_id = context.author.id
-    track = api.get_currently_playing(context.author.id)
+    track = api.get_currently_playing()
     message = await context.send(embed=embeds.create_track_embed(track))
 
-    if api.is_saved(discord_id, track):
+    if api.is_saved(track):
         await message.add_reaction(utils.broken_heart_emoji)
         await handle_dislike(context, message, discord_id, track)
     else:
@@ -169,7 +174,7 @@ async def handle_dislike(context, message, discord_id, track):
             check=partial(reaction_check, discord_id, utils.broken_heart_emoji),
             timeout=30.0
         )
-        api.remove_track(discord_id, track)
+        api.remove_track(track)
         await message.delete()
         await context.send(f"Removed {track['name']} from your library.")
     except asyncio.TimeoutError:
@@ -194,7 +199,7 @@ async def handle_like(context, message, discord_id, track):
             check=partial(reaction_check, discord_id, utils.heart_emoji),
             timeout=30.0
         )
-        api.save_track(discord_id, track)
+        api.save_track(track)
         await message.delete()
         await context.send(f"Saved {track['name']} to your library.")
     except asyncio.TimeoutError:
@@ -204,7 +209,7 @@ async def handle_like(context, message, discord_id, track):
 # region Playback
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def play(context):
     """
     Start/resume the playback.
@@ -216,13 +221,13 @@ async def play(context):
     """
 
     try:
-        api.play(context.author.id)
+        api.play()
     except SpotifyException:
         pass
 
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def pause(context):
     """
     Pause the playback.
@@ -234,13 +239,13 @@ async def pause(context):
     """
 
     try:
-        api.pause(context.author.id)
+        api.pause()
     except SpotifyException:
         pass
 
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def next(context):
     """
     Skip to the next track.
@@ -249,13 +254,13 @@ async def next(context):
     """
 
     try:
-        api.next_track(context.author.id)
+        api.next_track()
     except SpotifyException:
         pass
 
 
 @bot.command(aliases=["prev"])
-@is_authenticated()
+@authenticate()
 async def previous(context):
     """
     Skip to the previous track.
@@ -264,13 +269,13 @@ async def previous(context):
     """
 
     try:
-        api.previous_track(context.author.id)
+        api.previous_track()
     except SpotifyException:
         pass
 
 
 @bot.command()
-@is_authenticated()
+@authenticate()
 async def queue(context, *query):
     """
     Search for a song and add it to the playback queue.
@@ -301,7 +306,7 @@ async def queue(context, *query):
         )
         selected_track = tracks[utils.number_emojis.index(reaction.emoji.name)]
         await message.delete()
-        api.queue(context.author.id, selected_track)
+        api.queue(selected_track)
         await context.send(embed=embeds.create_track_embed(selected_track))
     except asyncio.TimeoutError:
         await message.delete()
