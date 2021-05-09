@@ -35,6 +35,15 @@ _auth_client = Spotify(oauth_manager=_oauth)
 # region Authentication
 
 def authorize_user(discord_id, code):
+    """
+    Retrieve and cache the access token for the given user.
+
+    Caching is handled automatically by spotipy by invoking get_access_token.
+
+    :param discord_id: Discord user id
+    :param code: Authorization code
+    """
+
     _cache_handler.current_user = discord_id
     _oauth.get_access_token(code, as_dict=True)
 
@@ -43,16 +52,44 @@ def authorize_user(discord_id, code):
 
 # region Information
 
-def get_current_user(discord_id):
+def get_user(discord_id):
+    """
+    Get the Spotify user for the given Discord user.
+
+    Corresponds to endpoint '/me'.
+
+    :param discord_id: Discord user id
+    :return:
+    """
+
     _cache_handler.current_user = discord_id
     return _auth_client.current_user()
 
 
 def get_tracks(query):
+    """
+    Get tracks based on a search query.
+
+    Corresponds to endpoint '/search'.
+    Does not require an authenticated client.
+
+    :param query: Search query
+    :return: List of matched tracks
+    """
+
     return _client.search(query, type="track", limit=5)["tracks"]["items"]
 
 
 def get_currently_playing(discord_id):
+    """
+    Get the currently playing track.
+
+    Corresponds to endpoint '/me/player'.
+
+    :param discord_id: Discord user id
+    :return: Currently playing track
+    """
+
     _cache_handler.current_user = discord_id
     return _auth_client.current_user_playing_track()["item"]
 
@@ -62,16 +99,44 @@ def get_currently_playing(discord_id):
 # region Library
 
 def is_saved(discord_id, track):
+    """
+    Check whether the given track is saved in the user's library.
+
+    Corresponds to endpoint '/me/tracks/contains'.
+
+    :param discord_id: Discord user id
+    :param track: Track to check
+    :return: True, if track is saved
+    """
+
     _cache_handler.current_user = discord_id
     return _auth_client.current_user_saved_tracks_contains([track["uri"]])[0]
 
 
 def save_track(discord_id, track):
+    """
+    Save a track to the user's library.
+
+    Corresponds to endpoint PUT '/me/tracks'.
+
+    :param discord_id: Discord user id
+    :param track: Track to save
+    """
+
     _cache_handler.current_user = discord_id
     _auth_client.current_user_saved_tracks_add([track["uri"]])
 
 
 def remove_track(discord_id, track):
+    """
+    Remove a track from the user's library.
+
+    Corresponds to endpoint DELETE '/me/tracks'.
+
+    :param discord_id: Discord user id
+    :param track: Track to remove
+    """
+
     _cache_handler.current_user = discord_id
     _auth_client.current_user_saved_tracks_delete([track["uri"]])
 
@@ -79,9 +144,19 @@ def remove_track(discord_id, track):
 # endregion
 
 # region Queue
+
 def queue(discord_id, track):
+    """
+    Queue a track.
+
+    Corresponds to POST '/me/player/queue'.
+
+    :param discord_id: Discord user id
+    :param track: Track to queue
+    """
+
     _cache_handler.current_user = discord_id
-    return _auth_client.add_to_queue(track["uri"])
+    _auth_client.add_to_queue(track["uri"])
 
 
 # endregion
@@ -89,12 +164,29 @@ def queue(discord_id, track):
 # region Playback
 
 def play(discord_id):
+    """
+    Start/resume the playback.
+
+    Corresponds to endpoint PUT '/me/player/play'.
+
+    :param discord_id: Discord user id
+    """
+
     _cache_handler.current_user = discord_id
     _auth_client.start_playback()
 
 
 def pause(discord_id):
+    """
+    Pause the playback.
+
+    Corresponds to endpoint PUT '/me/player/pause'.
+
+    :param discord_id: Discord user id
+    """
+
     _cache_handler.current_user = discord_id
     _auth_client.pause_playback()
+
 
 # endregion

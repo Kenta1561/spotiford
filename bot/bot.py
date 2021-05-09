@@ -98,7 +98,7 @@ async def connect(context, url):
     try:
         code = parse_qs(urlparse(url).query)["code"][0]
         api.authorize_user(context.author.id, code)
-        current_user = api.get_current_user(context.author.id)
+        current_user = api.get_user(context.author.id)
         await context.send(embed=embeds.create_user_embed(current_user))
     except KeyError:
         await context.send("Sorry, you provided an invalid response url.")
@@ -121,7 +121,7 @@ async def account(context):
     :param context: Invocation context
     """
 
-    current_user = api.get_current_user(context.author.id)
+    current_user = api.get_user(context.author.id)
     await context.send(embed=embeds.create_user_embed(current_user))
 
 
