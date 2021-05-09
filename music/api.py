@@ -179,6 +179,15 @@ def play():
     _auth_client.start_playback()
 
 
+def play_track(track):
+    """
+    Play the provided track.
+    :param track: Track to play
+    """
+
+    _auth_client.start_playback(uris=[track["uri"]])
+
+
 def pause():
     """
     Pause the playback.

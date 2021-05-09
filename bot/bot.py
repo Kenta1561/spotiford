@@ -75,6 +75,40 @@ def reaction_check(discord_id, allowed_emojis, reaction):
     return reaction.user_id == discord_id and reaction.emoji.name in allowed_emojis
 
 
+async def show_track_selection(context, query_words, track_callback):
+    """
+    Utility function to show a list of tracks for the user to select from.
+
+    Upon selection with a reaction, the provided callback gets called with the
+    selected track and the embed message object.
+
+    :param context: Invocation context
+    :param query_words: List of query args
+    :param track_callback: Callback to call after reaction event
+    """
+
+    query = " ".join(query_words)
+    tracks = api.get_tracks(query)
+    embed = embeds.create_tracks_embed(query, tracks)
+    message = await context.send(embed=embed)
+
+    for i in range(len(embed.fields)):
+        await message.add_reaction(utils.number_emojis[i])
+
+    try:
+        reaction = await bot.wait_for(
+            "raw_reaction_add",
+            check=partial(reaction_check, context.author.id, utils.number_emojis),
+            timeout=30.0
+        )
+        await track_callback(
+            tracks[utils.number_emojis.index(reaction.emoji.name)],
+            message
+        )
+    except asyncio.TimeoutError:
+        message.delete()
+
+
 # region Auth
 
 @bot.command()
@@ -210,7 +244,7 @@ async def handle_like(context, message, discord_id, track):
 
 @bot.command()
 @authenticate()
-async def play(context):
+async def play(context, *args):
     """
     Start/resume the playback.
 
@@ -221,12 +255,20 @@ async def play(context):
     """
 
     try:
-        api.play()
+        if args:
+            async def track_callback(selected_track, message):
+                await message.delete()
+                api.play_track(selected_track)
+                await context.send(embed=embeds.create_track_embed(selected_track))
+
+            await show_track_selection(context, args, track_callback)
+        else:
+            api.play()
     except SpotifyException:
         pass
 
 
-@bot.command()
+@bot.command(aliases=["stop"])
 @authenticate()
 async def pause(context):
     """
@@ -288,28 +330,12 @@ async def queue(context, *query):
     :param query: Search query
     """
 
-    discord_id = context.author.id
-    query_concat = " ".join(query)
-    tracks = api.get_tracks(query_concat)
-    embed = embeds.create_tracks_embed(query_concat, tracks)
-    message = await context.send(embed=embed)
-
-    for i in range(len(embed.fields)):
-        await message.add_reaction(utils.number_emojis[i])
-
-    # Wait for user reaction
-    try:
-        reaction = await bot.wait_for(
-            "raw_reaction_add",
-            check=partial(reaction_check, discord_id, utils.number_emojis),
-            timeout=30.0
-        )
-        selected_track = tracks[utils.number_emojis.index(reaction.emoji.name)]
+    async def queue_callback(selected_track, message):
         await message.delete()
         api.queue(selected_track)
         await context.send(embed=embeds.create_track_embed(selected_track))
-    except asyncio.TimeoutError:
-        await message.delete()
+
+    await show_track_selection(context, query, queue_callback)
 
 
-# endregion<
+# endregion
