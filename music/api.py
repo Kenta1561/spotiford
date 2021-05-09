@@ -28,6 +28,7 @@ def authorize_user(discord_id, code):
     _cache_handler.current_user = discord_id
     _oauth.get_access_token(code, as_dict=True)
 
+
 # endregion
 
 # region API Endpoints

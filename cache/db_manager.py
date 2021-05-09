@@ -5,6 +5,14 @@ from spotipy.cache_handler import CacheHandler
 
 
 def dict_factory(cursor, row):
+    """
+    SQLite row factory to convert rows into dicts.
+
+    :param cursor: SQLite cursor
+    :param row: Table row
+    :return: Converted dict
+    """
+
     dict = {}
     for i, col in enumerate(cursor.description):
         dict[col[0]] = row[i]
@@ -34,6 +42,13 @@ cursor = connection.cursor()
 
 
 def has_user(discord_id):
+    """
+    Check if a user exists in cache.
+
+    :param discord_id: Discord user id
+    :return: True, if user exists
+    """
+
     result = cursor.execute(
         "SELECT COUNT(*) FROM user WHERE discord_id = ?", (discord_id,)
     ).fetchone()
@@ -46,6 +61,12 @@ class DatabaseCacheHandler(CacheHandler):
         self.current_user = ""
 
     def get_cached_token(self):
+        """
+        Return the cached token information of current_user.
+
+        :return: Token information
+        """
+
         return cursor.execute(
             """
                 SELECT access_token, token_type, expires_in, refresh_token, scope, expires_at
@@ -56,6 +77,12 @@ class DatabaseCacheHandler(CacheHandler):
         ).fetchone()
 
     def save_token_to_cache(self, token_info):
+        """
+        Save the provided token information to current_user.
+
+        :param token_info: Token information
+        """
+
         cursor.execute(
             """
                 INSERT OR REPLACE INTO user VALUES (

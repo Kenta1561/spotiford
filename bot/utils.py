@@ -1,4 +1,4 @@
-# keycap emojis 1 through 5
+# key cap emojis 1 through 5
 number_emojis = [
     "\u0031\u20e3",
     "\u0032\u20e3",
@@ -9,4 +9,11 @@ number_emojis = [
 
 
 def concat_track_artists(track):
+    """
+    Concatenate the names of multiple artists of a track.
+
+    :param track: Track
+    :return: Multiple artist names separated by commas
+    """
+
     return ", ".join([artist["name"] for artist in track["artists"]])

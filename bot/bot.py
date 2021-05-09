@@ -16,6 +16,16 @@ bot = Bot(command_prefix="-")
 
 @bot.check
 async def disallow_guilds(context):
+    """
+    Global check function to verify that the command was invoked in a DM channel.
+
+    To avoid security risks by exposing Oauth access tokens to third parties,
+    all requests from guilds are rejected and a warning is sent.
+
+    :param context: Invocation context
+    :return: True, if command was invoked in a DM channel
+    """
+
     if context.guild:
         await context.send(
             "For security reasons, spotiford should only be used via DM."
@@ -25,24 +35,46 @@ async def disallow_guilds(context):
 
 
 def is_authenticated():
+    """
+    Check if the user is already authenticated with Spotify.
+
+    :return: True, if authenticated
+    """
+
     async def predicate(context):
         if not db_manager.has_user(context.author.id):
             await context.send("For that, you have to be logged in.")
             return False
         return True
+
     return commands.check(predicate)
+
 
 # endregion
 
 
 @bot.command()
 async def login(context):
+    """
+    Send an Oauth authorization url.
+
+    :param context: Invocation context
+    """
+
     await context.send(
         f"Authorize with your Spotify client here: {api._oauth.get_authorize_url()}")
 
 
 @bot.command()
 async def connect(context, url):
+    """
+    Establish a connection to the Spotify API.
+
+    Upon successful connection, a greeting with the user profile is displayed.
+
+    :param context: Invocation context
+    :param url: Authorization url from redirected page with code
+    """
     try:
         code = parse_qs(urlparse(url).query)["code"][0]
         api.authorize_user(context.author.id, code)
@@ -59,6 +91,12 @@ async def connect(context, url):
 @bot.command()
 @is_authenticated()
 async def account(context):
+    """
+    Send the Spotify profile of the user.
+
+    :param context: Invocation context
+    """
+
     current_user = api.get_current_user(context.author.id)
     await context.send(embed=embeds.create_user_embed(current_user))
 
@@ -66,6 +104,12 @@ async def account(context):
 @bot.command()
 @is_authenticated()
 async def now(context):
+    """
+    Display the currently playing track.
+
+    :param context: Invocation context
+    """
+
     track = api.get_currently_playing(context.author.id)
     await context.send(embed=embeds.create_track_embed(track))
 
@@ -73,9 +117,20 @@ async def now(context):
 @bot.command()
 @is_authenticated()
 async def queue(context, *query):
+    """
+    Search for a song and add it to the playback queue.
+
+    Upon request, up to five tracks matching the provided query are displayed.
+    The user can selected a track to be queued by reacting with one of the key cap
+    emojis from 1 through 5.
+
+    :param context: Invocation context
+    :param query: Search query
+    """
+
     query_concat = " ".join(query)
     tracks = api.get_tracks(query_concat)
-    embed = embeds.create_queueable_embed(query_concat, tracks)
+    embed = embeds.create_tracks_embed(query_concat, tracks)
     message = await context.send(embed=embed)
 
     for i in range(len(embed.fields)):
