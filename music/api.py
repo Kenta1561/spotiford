@@ -29,6 +29,7 @@ _client = Spotify(auth_manager=SpotifyClientCredentials(
 _auth_client = Spotify(oauth_manager=_oauth)
 
 
+# TODO automatic switch of current_user
 # TODO Rework auth on unsuccessful auth, avoid stdout prompt
 
 # region Authentication
@@ -40,7 +41,7 @@ def authorize_user(discord_id, code):
 
 # endregion
 
-# region API Endpoints
+# region Information
 
 def get_current_user(discord_id):
     _cache_handler.current_user = discord_id
@@ -56,10 +57,9 @@ def get_currently_playing(discord_id):
     return _auth_client.current_user_playing_track()["item"]
 
 
-def queue(discord_id, track):
-    _cache_handler.current_user = discord_id
-    return _auth_client.add_to_queue(track["uri"])
+# endregion
 
+# region Library
 
 def is_saved(discord_id, track):
     _cache_handler.current_user = discord_id
@@ -74,5 +74,27 @@ def save_track(discord_id, track):
 def remove_track(discord_id, track):
     _cache_handler.current_user = discord_id
     _auth_client.current_user_saved_tracks_delete([track["uri"]])
+
+
+# endregion
+
+# region Queue
+def queue(discord_id, track):
+    _cache_handler.current_user = discord_id
+    return _auth_client.add_to_queue(track["uri"])
+
+
+# endregion
+
+# region Playback
+
+def play(discord_id):
+    _cache_handler.current_user = discord_id
+    _auth_client.start_playback()
+
+
+def pause(discord_id):
+    _cache_handler.current_user = discord_id
+    _auth_client.pause_playback()
 
 # endregion

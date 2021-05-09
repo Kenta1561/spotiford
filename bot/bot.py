@@ -4,6 +4,7 @@ from urllib.parse import urlparse, parse_qs
 
 from discord.ext import commands
 from discord.ext.commands.bot import Bot
+from spotipy import SpotifyException
 from spotipy.oauth2 import SpotifyOauthError
 
 from bot import embeds, utils
@@ -69,6 +70,8 @@ def reaction_check(discord_id, allowed_emojis, reaction):
     return reaction.user_id == discord_id and reaction.emoji.name in allowed_emojis
 
 
+# region Auth
+
 @bot.command()
 async def login(context):
     """
@@ -104,6 +107,10 @@ async def connect(context, url):
             "Sorry, the authorization was unsuccessful. Please try again with `-login`."
         )
 
+
+# endregion
+
+# region Information
 
 @bot.command()
 @is_authenticated()
@@ -194,6 +201,44 @@ async def handle_like(context, message, discord_id, track):
         pass
 
 
+# region Playback
+
+@bot.command()
+@is_authenticated()
+async def play(context):
+    """
+    Start/resume the playback.
+
+    Ignore the exception raised when trying to invoke this command while a track
+    is already playing.
+
+    :param context: Invocation context
+    """
+
+    try:
+        api.play(context.author.id)
+    except SpotifyException:
+        pass
+
+
+@bot.command()
+@is_authenticated()
+async def pause(context):
+    """
+    Pause the playback.
+
+    Ignore the exception raised when trying to invoke this command while the playback
+    is already paused.
+
+    :param context: Invocation context
+    """
+
+    try:
+        api.pause(context.author.id)
+    except SpotifyException:
+        pass
+
+
 @bot.command()
 @is_authenticated()
 async def queue(context, *query):
@@ -230,3 +275,5 @@ async def queue(context, *query):
         await context.send(embed=embeds.create_track_embed(selected_track))
     except asyncio.TimeoutError:
         await message.delete()
+
+# endregion
