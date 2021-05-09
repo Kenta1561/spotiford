@@ -189,4 +189,30 @@ def pause(discord_id):
     _auth_client.pause_playback()
 
 
+def next_track(discord_id):
+    """
+    Skip to the next track.
+
+    Corresponds to endpoint POST '/me/player/next'.
+
+    :param discord_id: Discord user id
+    """
+
+    _cache_handler.current_user = discord_id
+    _auth_client.next_track()
+
+
+def previous_track(discord_id):
+    """
+    Skip to the previous track.
+
+    Corresponds to endpoint POST '/me/player/previous'.
+
+    :param discord_id: Discord user id
+    """
+
+    _cache_handler.current_user = discord_id
+    _auth_client.previous_track()
+
+
 # endregion

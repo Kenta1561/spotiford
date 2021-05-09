@@ -241,6 +241,36 @@ async def pause(context):
 
 @bot.command()
 @is_authenticated()
+async def next(context):
+    """
+    Skip to the next track.
+
+    :param context: Invocation context
+    """
+
+    try:
+        api.next_track(context.author.id)
+    except SpotifyException:
+        pass
+
+
+@bot.command(aliases=["prev"])
+@is_authenticated()
+async def previous(context):
+    """
+    Skip to the previous track.
+
+    :param context: Invocation context
+    """
+
+    try:
+        api.previous_track(context.author.id)
+    except SpotifyException:
+        pass
+
+
+@bot.command()
+@is_authenticated()
 async def queue(context, *query):
     """
     Search for a song and add it to the playback queue.
@@ -276,4 +306,5 @@ async def queue(context, *query):
     except asyncio.TimeoutError:
         await message.delete()
 
-# endregion
+
+# endregion<
