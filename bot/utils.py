@@ -7,6 +7,9 @@ number_emojis = [
     "\u0035\u20e3"
 ]
 
+heart_emoji = "\u2764"
+broken_heart_emoji = "\U0001f494"
+
 
 def concat_track_artists(track):
     """

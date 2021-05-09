@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 from urllib.parse import urlparse, parse_qs
 
 from discord.ext import commands
@@ -52,6 +53,21 @@ def is_authenticated():
 
 # endregion
 
+def reaction_check(discord_id, allowed_emojis, reaction):
+    """
+    Event check predicate to validate a raw_reaction_add event.
+
+    Check whether the reaction is made by the original user that invoked the command
+    and whether the reaction emoji is in a list of valid emojis.
+
+    :param discord_id: Discord user id
+    :param allowed_emojis: List of valid emojis
+    :param reaction: Reaction object
+    :return: True, if event is valid
+    """
+
+    return reaction.user_id == discord_id and reaction.emoji.name in allowed_emojis
+
 
 @bot.command()
 async def login(context):
@@ -75,6 +91,7 @@ async def connect(context, url):
     :param context: Invocation context
     :param url: Authorization url from redirected page with code
     """
+
     try:
         code = parse_qs(urlparse(url).query)["code"][0]
         api.authorize_user(context.author.id, code)
@@ -107,11 +124,74 @@ async def now(context):
     """
     Display the currently playing track.
 
+    If the track is saved by the user, reacting with a broken heart
+    emoji removes the track from the library.
+
+    If the track is not saved by the user, reacting with a heart emoji saves the track
+    to the library.
+
     :param context: Invocation context
     """
 
+    discord_id = context.author.id
     track = api.get_currently_playing(context.author.id)
-    await context.send(embed=embeds.create_track_embed(track))
+    message = await context.send(embed=embeds.create_track_embed(track))
+
+    if api.is_saved(discord_id, track):
+        await message.add_reaction(utils.broken_heart_emoji)
+        await handle_dislike(context, message, discord_id, track)
+    else:
+        await message.add_reaction(utils.heart_emoji)
+        await handle_like(context, message, discord_id, track)
+
+
+async def handle_dislike(context, message, discord_id, track):
+    """
+    Wait for the user to react with a broken heart emoji to a track embed.
+    Remove the song from the user's library.
+
+    :param context: Invocation context
+    :param message: Track embed message
+    :param discord_id: Discord user id
+    :param track: Track
+    """
+
+    try:
+        await bot.wait_for(
+            "raw_reaction_add",
+            check=partial(reaction_check, discord_id, utils.broken_heart_emoji),
+            timeout=30.0
+        )
+        api.remove_track(discord_id, track)
+        await message.delete()
+        await context.send(f"Removed {track['name']} from your library.")
+    except asyncio.TimeoutError:
+        pass
+
+
+async def handle_like(context, message, discord_id, track):
+    """
+    Wait for the user to react with a heart emoji to a track embed.
+    Add the song to the user's library.
+
+    :param context:
+    :param message:
+    :param discord_id:
+    :param track:
+    :return:
+    """
+
+    try:
+        await bot.wait_for(
+            "raw_reaction_add",
+            check=partial(reaction_check, discord_id, utils.heart_emoji),
+            timeout=30.0
+        )
+        api.save_track(discord_id, track)
+        await message.delete()
+        await context.send(f"Saved {track['name']} to your library.")
+    except asyncio.TimeoutError:
+        pass
 
 
 @bot.command()
@@ -128,6 +208,7 @@ async def queue(context, *query):
     :param query: Search query
     """
 
+    discord_id = context.author.id
     query_concat = " ".join(query)
     tracks = api.get_tracks(query_concat)
     embed = embeds.create_tracks_embed(query_concat, tracks)
@@ -136,14 +217,12 @@ async def queue(context, *query):
     for i in range(len(embed.fields)):
         await message.add_reaction(utils.number_emojis[i])
 
-    # Add reactions for track selection
-    def queue_reaction_check(reaction):
-        return reaction.user_id == context.author.id and reaction.emoji.name in utils.number_emojis
-
     # Wait for user reaction
     try:
         reaction = await bot.wait_for(
-            "raw_reaction_add", check=queue_reaction_check, timeout=30.0
+            "raw_reaction_add",
+            check=partial(reaction_check, discord_id, utils.number_emojis),
+            timeout=30.0
         )
         selected_track = tracks[utils.number_emojis.index(reaction.emoji.name)]
         await message.delete()
